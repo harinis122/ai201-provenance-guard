@@ -4,17 +4,10 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 
 from audit_log import get_log, log_submission
-from main import get_llm_signal
+from main import get_heuristic_signal, get_llm_signal
+from scoring import attribution_from_score, combine_scores
 
 app = Flask(__name__)
-
-
-def attribution_from_llm_score(llm_score):
-    if llm_score <= 0.35:
-        return "likely_human"
-    if llm_score >= 0.75:
-        return "likely_ai"
-    return "uncertain"
 
 
 @app.route("/")
@@ -33,8 +26,9 @@ def submit():
     content_id = str(uuid.uuid4())
 
     llm_signal = get_llm_signal(text)
-    attribution = attribution_from_llm_score(llm_signal["llm_score"])
-    confidence_score = 0.5
+    heuristic_signal = get_heuristic_signal(text)
+    confidence_score = combine_scores(llm_signal["llm_score"], heuristic_signal["heuristic_score"])
+    attribution = attribution_from_score(confidence_score)
 
     log_submission({
         "content_id": content_id,
@@ -44,6 +38,7 @@ def submit():
         "attribution": attribution,
         "confidence": confidence_score,
         "llm_score": llm_signal["llm_score"],
+        "heuristic_score": heuristic_signal["heuristic_score"],
         "status": "classified",
     })
 
@@ -54,7 +49,7 @@ def submit():
         "confidence_score": confidence_score,
         "signal_scores": {
             "llm_score": llm_signal["llm_score"],
-            "heuristic_score": None,
+            "heuristic_score": heuristic_signal["heuristic_score"],
         },
         "label": "placeholder label",
     })

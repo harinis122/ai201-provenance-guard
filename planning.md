@@ -26,7 +26,7 @@ User submits text
       |
       v
 POST /submit endpoint
-- accepts text and user_id
+- accepts text and creator_id
 - creates text_id
       |
       v
@@ -62,7 +62,7 @@ Transparency Label Generator
       |
       v
 Audit Log
-- records text_id, user_id, signal scores, confidence, label, status (classified or under_review)
+- records text_id, creator_id, signal scores, confidence, label, status (classified or under_review)
       |
       v
 JSON Response
@@ -91,15 +91,15 @@ JSON Response
 
 ## Detection Signals
 What are your 2+ signals? What does each one measure? What does each signal's output look like (a score between 0–1? a binary flag?), and how will you combine them into a single confidence score?
-My two signals are the LLM signal and the Stylometric Heuristics Signal. The LLM signal uses an LLM to identify whether a piece of text is human written or AI generated, and identifies things like common AI-generated phrases and overall feel of the text and outputs a score between 0-1. The Stylometric Heuristics Signal uses computation to identfy whether a piece of text is human written or AI generated and looks at sentence structure, sentence structure variation, repeated phrases, and uniform punctuation, and also outputs a score between 0-1. I will combine the two scores into a single confidence score by taking the average of both scores as both signals are equally important in evaluating the text. For both signals, 0 means strongly human-like, 1 means strongly AI-like, and 0.5 means unclear.
+My two signals are the LLM signal and the Stylometric Heuristics Signal. The LLM signal uses an LLM to identify whether a piece of text is human written or AI generated, and identifies things like common AI-generated phrases and overall feel of the text and outputs a score between 0-1. The Stylometric Heuristics Signal uses computation to identfy whether a piece of text is human written or AI generated and looks at sentence structure, sentence structure variation, repeated phrases, and uniform punctuation, and also outputs a score between 0-1. I will combine the two scores into a single confidence score by using the formula: total_score = 0.6(llm_score) + 0.4(heuristic_score) because the llm_score is more predictable/reliable than the heuristic_score. For both signals, 0 means strongly human-like, 1 means strongly AI-like, and 0.5 means unclear.
 
 
 ## Uncertainty representation
 What does a confidence score of 0.6 mean to your system? How will you map raw signal outputs to a calibrated score? What threshold separates "likely AI" from "uncertain" from "likely human"?
 A confidence score of 0.6 means the system sees some AI-like patterns, but not enough to confidently say that the text is AI-generated. In my system, 0.6 is still treated as uncertain.
-0.00 - 0.35 = likely human-written
-0.36 - 0.74 = uncertain
-0.75 - 1.00 = likely AI-generated
+0.00 - 0.40 = likely human-written
+0.41 - 0.64 = uncertain
+0.65 - 1.00 = likely AI-generated
 I chose a wider uncertain range because false positives are risky. If the system incorrectly labels a human writer’s work as AI-generated, that could be unfair to the creator. Because of that, the system should only show a high-confidence AI label when the score is very high.
 
 
@@ -121,5 +121,5 @@ Submission Endpoint & First Signal: I will provide the AI tool with my detection
 
 Second Signal & Confidence Scoring: I will provide the AI tool with the detection signals and uncertainty representation and architecture diagram, and I will ask it to generate the second signal function and scoring logic. I will check if the scores vary meaningfully between clearly AI and clearly human text.
 
-Production Layer: I will provide the AI tool with the label variants and appeals workflow and architecture diagram, and I'll ask for the label generation logic and the /appeal endpoint. I will verify this by testing if all three label variants are reachable and if an appeal updates status correctly.
+Production Layer: I will provide the AI tool with the label variants and appeals workflow and architecture diagram, and I'll ask for the label generation logic and the /appeal endpoint. I will verify this by testing if all three label variants are reachable and that an appeal updates status correctly.
 
